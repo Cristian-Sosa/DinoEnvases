@@ -24,7 +24,7 @@ export class MainComponent implements OnInit {
   public carga = JSON.parse(localStorage.getItem('carga')!);
 
   private printCharacteristic: any;
-  private cargaToPrint: any;
+  private printerUUID: any = undefined;
 
   private bluetooth = (navigator as any).bluetooth;
 
@@ -52,7 +52,8 @@ export class MainComponent implements OnInit {
         ],
       })
       .then((device: any) => {
-        console.log('Conectando a ' + device.name);
+        this.toastService.setToastState(true, 'Conectando a ' + device?.uuid);
+        this.printerUUID = device?.id;
         return device?.gatt?.connect();
       })
       .then((server: any) =>
@@ -86,7 +87,7 @@ export class MainComponent implements OnInit {
       .Iniciar()
       .Feed(1);
 
-      const respuesta = await conector.imprimirEn(this.printCharacteristic);
+    const respuesta = await conector.imprimirEn(this.printerUUID);
   };
 
   notificacionPush = (): void => {
