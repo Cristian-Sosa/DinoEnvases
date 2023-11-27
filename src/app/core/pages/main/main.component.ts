@@ -53,7 +53,8 @@ export class MainComponent implements OnInit {
       })
       .then((device: any) => {
         this.toastService.setToastState(true, 'Conectando a ' + device?.uuid);
-        this.printerUUID = device?.id;
+        this.printerUUID = device?.BluetoothUUID.id;
+        console.log(device)
         return device?.gatt?.connect();
       })
       .then((server: any) =>
