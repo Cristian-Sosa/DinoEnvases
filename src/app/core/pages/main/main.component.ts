@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { AuthService, CargaEnvaseService, ToastService } from 'src/app/shared';
 import { DateTime } from 'luxon';
+import ConectorPluginV3 from './ConectorPluginV3';
 
 @Component({
   selector: 'app-main',
@@ -42,114 +43,50 @@ export class MainComponent implements OnInit {
   }
 
   print = (): void => {
-    this.printCharacteristic = null;
-
-    if (this.printCharacteristic == null) {
-      this.bluetooth
-        .requestDevice({
-          filters: [
-            {
-              services: ['000018f0-0000-1000-8000-00805f9b34fb'],
-            },
-          ],
-        })
-        .then((device: any) => {
-          console.log('Conectando a ' + device.name);
-          return device?.gatt?.connect();
-        })
-        .then((server: any) =>
-          server?.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb')
-        )
-        .then((service: any) =>
-          service?.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb')
-        )
-        .then((characteristic: any) => {
-          this.printCharacteristic = characteristic;
-          this.generateMessageToPrint();
-        })
-        .catch(() =>
-          this.toastService.setToastState(true, 'Error Imprimiendo')
-        );
-    } else {
-      this.generateMessageToPrint();
-    }
+    this.bluetooth
+      .requestDevice({
+        filters: [
+          {
+            services: ['000018f0-0000-1000-8000-00805f9b34fb'],
+          },
+        ],
+      })
+      .then((device: any) => {
+        console.log('Conectando a ' + device.name);
+        return device?.gatt?.connect();
+      })
+      .then((server: any) =>
+        server?.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb')
+      )
+      .then((service: any) =>
+        service?.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb')
+      )
+      .then((characteristic: any) => {
+        this.printCharacteristic = characteristic;
+        this.generateMessageToPrint();
+      })
+      .catch(() => this.toastService.setToastState(true, 'Error Imprimiendo'));
   };
 
-  generateMessageToPrint = (): void => {
-    const date = DateTime.now();
+  generateMessageToPrint = async (): Promise<any> => {
+    const conector = new ConectorPluginV3();
 
-    this.cargaEnvaseService.observableEnvases().subscribe((envases) => {
-      this.cargaToPrint = `$bighw$SUPER MAMI$intro$`;
-      this.cargaToPrint += `$big$VALE PARA ENVASE$intro$`;
+    conector
+      .Iniciar()
+      .EstablecerAlineacion(ConectorPluginV3.ALINEACION_CENTRO)
+      .EscribirTexto('Hola Angular desde parzibyte.me')
+      .Feed(1)
+      .EscribirTexto('Prueba de impresión')
+      .Feed(1)
+      .DescargarImagenDeInternetEImprimir(
+        'https://pedroerlopez.shop/lander/ar-white/images/logo-super-mami.png',
+        ConectorPluginV3.TAMAÑO_IMAGEN_NORMAL,
+        400
+      )
+      .Iniciar()
+      .Feed(1);
 
-      this.cargaToPrint += `$small$NRO VALE: ${Math.floor(
-        10000000 + Math.random() * 90000000
-      )}$intro$`;
-      this.cargaToPrint += `$small$Sucursal: ${this.authService.getSucursal()}$intro$`;
-
-      this.cargaToPrint += `$small$FECHA: ${date.toLocaleString(
-        DateTime.DATETIME_SHORT
-      )}$intro$$small$GUARDIA: ${this.authService.getUsuarioLogged()}$intro$$intro$`;
-      
-      this.cargaToPrint += `$small$ ------------ DETALLE DEL VALE -----------$intro$`;
-      this.cargaToPrint += `$small$ COD.    DESC.                      CANT.$intro$`;
-      // this.cargaToPrint += `$big$DETALLE DE CARGA:$intro$`;
-
-      envases.forEach((envase) => {
-        this.cargaToPrint += `$small$${Math.floor(
-          1000000 + Math.random() * 9000000
-        )}  `;
-
-        let nombreLength: number = 0;
-        if (
-          envase.cardEnvase.nombre &&
-          envase.cardEnvase != envase.cardEnvase.tipo
-        ) {
-          nombreLength = envase.cardEnvase.nombre.concat(
-            envase.cardEnvase.tipo
-          ).length;
-          this.cargaToPrint += envase.cardEnvase.nombre
-            .toUpperCase()
-            .concat(' ', envase.cardEnvase.tipo.toUpperCase());
-        } else {
-          nombreLength = envase.cardEnvase.nombre.length;
-          this.cargaToPrint += envase.cardEnvase.nombre.toUpperCase();
-        }
-
-        for (let i = 0; i < 26 - nombreLength; i++) {
-          this.cargaToPrint += ' ';
-        }
-
-        this.cargaToPrint += `${envase.cardEnvase.cantidad}$intro$`;
-      });
-
-      this.cargaToPrint += `$intro$`;
-      this.cargaToPrint += `$small$ -----------------------------------------$intro$`;
-      this.cargaToPrint += `$small$ ------ VALIDO POR EL DIA DE EMISION -----$intro$`;
-      this.cargaToPrint += `$small$ -----------------------------------------$intro$$intro$`;
-
-      this.cargaToPrint += `$big$NRO PV: $intro$`;
-      this.cargaToPrint += `$big$NRO TICKET: $intro$`;
-      this.cargaToPrint += `$intro$$intro$$cutt$`;
-
-      this.sendTextData();
-    });
-  };
-
-  sendTextData = async () => {
-    // const encoder2 = new TextEncoder();
-    // const cargaToPrint = this.cargaToPrint + '\u000A\u000D';
-    // const chunkSize = 512;
-
-    // for (let i = 0; i < cargaToPrint.length; i += chunkSize) {
-    //   const chunk = cargaToPrint.slice(i, i + chunkSize);
-    //   await this.printCharacteristic.writeValue(encoder2.encode(chunk));
-    // }
-
-    const a = document.createElement('a');
-
-    a.href = 'com.fidelier.printfromweb://'.concat(this.cargaToPrint);
-    a.click();
+      const respuesta = await conector.imprimirEn(this.printCharacteristic);
   };
 
   notificacionPush = (): void => {
