@@ -6,7 +6,12 @@ import {
   Output,
   inject,
 } from '@angular/core';
-import { FormGroup, FormControl, Validators } from '@angular/forms';
+import {
+  FormGroup,
+  FormControl,
+  Validators,
+  AbstractControl,
+} from '@angular/forms';
 import { EnvasesDataService, ToastService } from 'src/app/shared';
 
 @Component({
@@ -26,6 +31,41 @@ export class CantidadEnvaseModalComponent implements OnInit {
 
   @Input() tipoEnvaseId: number | null = null;
 
+  esNumeroNegativo(
+    control: AbstractControl
+  ): { [key: string]: boolean } | null {
+    const value = control.value;
+
+    if (value !== null && value !== undefined && value < 0) {
+      return { esNumeroNegativo: true };
+    }
+
+    return null;
+  }
+
+  esNumeroMayor(control: AbstractControl): { [key: string]: boolean } | null {
+    const value = control.value;
+
+    if (value !== null && value !== undefined && value > 10000) {
+      return { esNumeroMayor: true };
+    }
+
+    return null;
+  }
+
+  // Función de validación personalizada para verificar si es un número flotante
+  esNumeroFlotante(
+    control: AbstractControl
+  ): { [key: string]: boolean } | null {
+    const value = control.value;
+
+    if (value !== null && value !== undefined && value % 1 !== 0) {
+      return { esNumeroFlotante: true };
+    }
+
+    return null;
+  }
+
   tipoEnvaseForm = new FormGroup({
     tipoControl: new FormControl('', [
       Validators.required,
@@ -35,7 +75,10 @@ export class CantidadEnvaseModalComponent implements OnInit {
       Validators.required,
       Validators.nullValidator,
       Validators.min(1),
-      Validators.max(5000),
+      Validators.max(1000),
+      this.esNumeroNegativo,
+      this.esNumeroFlotante,
+      this.esNumeroMayor,
     ]),
   });
 
@@ -66,20 +109,26 @@ export class CantidadEnvaseModalComponent implements OnInit {
   returnProcess = (): void => this.cantidadEnvase.emit(0);
 
   forwardProcess = (): void => {
-    let envase: string | null =
-      this.tipoEnvaseForm.controls['tipoControl'].value;
-    let cantidad: string | null =
-      this.tipoEnvaseForm.controls['cantidadControl'].value;
+    let envase: FormControl = this.tipoEnvaseForm.controls['tipoControl'];
+    let cantidad: FormControl = this.tipoEnvaseForm.controls['cantidadControl'];
 
-    if (!cantidad) {
+    if (
+      envase.invalid ||
+      cantidad.hasError('esNumeroNegativo') ||
+      cantidad.hasError('esNumeroFlotante')
+    ) {
       this.toastService.setToastState(true, 'Cantidad inválida');
     } else {
-      let obj: { envaseId: number; cantidad: number } = {
-        envaseId: parseInt(envase!),
-        cantidad: parseInt(cantidad),
-      };
+      if (cantidad.hasError('esNumeroMayor')) {
+        this.toastService.setToastState(true, 'Límite de cantidad superado');
+      } else {
+        let obj: { envaseId: number; cantidad: number } = {
+          envaseId: parseInt(envase.value),
+          cantidad: parseInt(cantidad.value),
+        };
 
-      this.cantidadEnvase.emit(obj);
+        this.cantidadEnvase.emit(obj);
+      }
     }
   };
 }
