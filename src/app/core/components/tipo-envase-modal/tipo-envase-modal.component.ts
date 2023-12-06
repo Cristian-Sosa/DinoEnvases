@@ -1,6 +1,6 @@
-import { Component, EventEmitter, inject, Output } from '@angular/core';
+import { Component, EventEmitter, inject, OnInit, Output } from '@angular/core';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
-import { CargaEnvaseService } from 'src/app/shared';
+import { EnvasesDataService } from 'src/app/shared';
 import { ToastService } from 'src/app/shared';
 
 @Component({
@@ -8,14 +8,13 @@ import { ToastService } from 'src/app/shared';
   templateUrl: './tipo-envase-modal.component.html',
   styleUrls: ['./tipo-envase-modal.component.sass'],
 })
-export class TipoEnvaseModalComponent {
+export class TipoEnvaseModalComponent implements OnInit {
   private toastService = inject(ToastService);
-  private cargaEnvaseService = inject(CargaEnvaseService);
+  private cargaEnvaseService = inject(EnvasesDataService);
 
-  public tipoEnvases: Array<any> =
-    this.cargaEnvaseService.getNombreEnvases();
+  public tipoEnvases2: any[] = [];
 
-  @Output() tipoEnvase: EventEmitter<string | null> = new EventEmitter();
+  @Output() tipoEnvase: EventEmitter<number> = new EventEmitter();
 
   tipoEnvaseForm = new FormGroup({
     envaseControl: new FormControl(null, [
@@ -24,7 +23,25 @@ export class TipoEnvaseModalComponent {
     ]),
   });
 
-  returnProcess = (): void => this.tipoEnvase.emit(null);
+  ngOnInit(): void {
+    this.cargaEnvaseService.getTiposEnvases().map((envase) => {
+      let envaseTemp: any = {
+        id: envase.id,
+        title: this.capitalizarTexto(envase.nombre),
+        name: envase.nombre,
+      };
+
+      this.tipoEnvases2.push(envaseTemp);
+    });
+  }
+
+  capitalizarTexto(texto: string): string {
+    if (texto.length === 0) return texto;
+
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  }
+
+  returnProcess = (): void => this.tipoEnvase.emit(0);
 
   forwardProcess = (): void => {
     let envase: string | null | undefined =
@@ -32,8 +49,6 @@ export class TipoEnvaseModalComponent {
 
     if (!envase) {
       this.toastService.setToastState(true, 'Seleccioná un envase para seguir');
-
-      setTimeout(() => this.toastService.setToastState(false), 3000);
     } else {
       this.tipoEnvase.emit(envase);
     }

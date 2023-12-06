@@ -16,6 +16,9 @@ MIT
 @angular/service-worker
 MIT
 
+jsbarcode
+MIT
+
 luxon
 MIT
 Copyright 2019 JS Foundation and other contributors

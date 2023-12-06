@@ -38,8 +38,8 @@ export class InputRadioComponent implements ControlValueAccessor {
     // Puedes implementar esta función si es necesario
   }
 
-  selectGenero(envase: string): void {
-    this.selectedEnvase = envase;
+  selected(envaseId: string): void {
+    this.selectedEnvase = envaseId;
     this.onChange(this.selectedEnvase);
     this.onTouched();
   }

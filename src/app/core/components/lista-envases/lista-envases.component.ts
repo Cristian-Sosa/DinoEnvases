@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CargaEnvaseService } from 'src/app/shared';
+import { EnvasesDataService } from 'src/app/shared';
 
 @Component({
   selector: 'app-lista-envases',
@@ -7,13 +7,18 @@ import { CargaEnvaseService } from 'src/app/shared';
   styleUrls: ['./lista-envases.component.sass'],
 })
 export class ListaEnvasesComponent implements OnInit {
-  private cargaEnvaseService = inject(CargaEnvaseService);
+  private envasesDataService = inject(EnvasesDataService);
 
   public envases: any[] = [];
 
   ngOnInit(): void {
-    this.cargaEnvaseService
-      .observableEnvases()
-      .subscribe((envases) => (this.envases = envases));
+    this.envasesDataService.getEnvasesObservable().subscribe({
+      next: (cargaEnvases) => {
+        this.envases = cargaEnvases;
+      },
+      error: () => {
+        throw new Error('Error obteniendo carga');
+      },
+    });
   }
 }

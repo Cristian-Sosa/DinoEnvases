@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { AuthService, CargaEnvaseService, ToastService } from 'src/app/shared';
+import { AuthService, EnvasesDataService } from 'src/app/shared';
 import { DateTime } from 'luxon';
 
 @Component({
@@ -8,185 +8,73 @@ import { DateTime } from 'luxon';
   styleUrls: ['./main.component.sass'],
 })
 export class MainComponent implements OnInit {
-  private cargaEnvaseService = inject(CargaEnvaseService);
-  private toastService = inject(ToastService);
+  private envasesDataService = inject(EnvasesDataService);
   private authService = inject(AuthService);
 
   public showModal: string = 'none';
+  public generateTicket: boolean = false;
 
   public cargaExist: boolean = false;
-  public tipoEnvase: any;
-  public envases: any;
+  public cabecera: { fecha: string; sucursal: string; ticket: string } = {
+    fecha: DateTime.now().toFormat('LLL dd/MM/yyyy, hh:mm'),
+    sucursal: this.authService.getDataUser()?.sucursal!,
+    ticket: 'xxxxxxxxxxxx',
+  };
 
-  private nombreEnvase: any;
-
-  public carga = JSON.parse(localStorage.getItem('carga')!);
-
-  private printCharacteristic: any;
-  private cargaToPrint: any;
-
-  private bluetooth = (navigator as any).bluetooth;
-
-  constructor() {
-    this.envases = this.cargaEnvaseService.getTipoEnvases();
-  }
+  public envaseDTO: {
+    envaseId: number | null;
+    tipoEnvaseId: number | null;
+    cantidad: number | null;
+  } = {
+    envaseId: null,
+    tipoEnvaseId: null,
+    cantidad: null,
+  };
 
   ngOnInit(): void {
-    this.cargaEnvaseService.observableEnvases().subscribe((envases) => {
-      if (envases.length > 0) {
-        this.cargaExist = true;
-      } else {
+    this.envasesDataService.getEnvasesObservable().subscribe({
+      next: (res) => {
+        res.length > 0 ? (this.cargaExist = true) : (this.cargaExist = false);
+      },
+      error: () => {
         this.cargaExist = false;
-      }
+      },
     });
+
+    if (localStorage.getItem('carga_pendiente')) {
+      this.notificacionPush(
+        'Hay cargas pendientes de subir, conectate a internet para subirlas'
+      );
+    }
   }
 
-  getPrinter = (): void => {
-    this.printCharacteristic = null;
-    this.cargaToPrint = '';
+  generarCodigoAleatorio = (): number => {
+    const codigo = Math.floor(100000 + Math.random() * 900000);
+    return codigo;
+  }
 
-    this.bluetooth
-      .requestDevice({
-        filters: [
-          {
-            services: ['000018f0-0000-1000-8000-00805f9b34fb'],
-          },
-        ],
-      })
-      .then((device: any) => {
-        console.log('Conectando a ' + device.name);
-        return device?.gatt?.connect();
-      })
-      .then((server: any) =>
-        server?.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb')
-      )
-      .then((service: any) =>
-        service?.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb')
-      )
-      .then((characteristic: any) => {
-        this.printCharacteristic = characteristic;
-        this.printCarga();
-      })
-      .catch(() => this.toastService.setToastState(true, 'Error Imprimiendo'));
-  };
+  printCarga = () => {
+    this.cabecera.fecha = DateTime.now().toFormat('LLL dd/MM/yyyy, hh:mm');
+    this.cabecera.sucursal = this.authService.getDataUser()?.sucursal!;
+    this.cabecera.ticket = this.generarCodigoAleatorio().toString().concat(DateTime.now().toFormat('hhmmss'));
 
-  createValeId = (): void => {
-    let randomNumber = Math.floor(Math.random() * 999999) + 1;
-    let formattedNumber: string = randomNumber.toString().padStart(6, '0');
-
-    let formattedDate: string = DateTime.now().toISODate({ format: 'basic' })!;
-
-    this.cargaToPrint += `$small$NRO VALE: ${formattedNumber.concat(
-      '-',
-      formattedDate
-    )}$intro$`;
-  };
-
-  addHeaderToPrint = async () => {
-    let date = DateTime.now();
-
-    this.cargaToPrint = `$bighw$SPER MAMI$intro$`;
-    this.cargaToPrint += `$big$VALE PARA ENVASE$intro$`;
-
-    this.createValeId();
-
-    this.cargaToPrint += `$small$Sucursal: ${this.authService.getSucursal()}$intro$`;
-
-    this.cargaToPrint += `$small$FECHA: ${date.toLocaleString(
-      DateTime.DATETIME_SHORT
-    )}$intro$`;
-
-    this.cargaToPrint += `$small$GUARDIA: ${
-      this.authService.getUsuarioLogged()
-        ? this.authService.getUsuarioLogged()
-        : this.authService.getSucursal()
-    }$intro$$intro$`;
-  };
-
-  addCargaToPrint = async () => {
-    this.cargaToPrint += `$small$------------- DETALLE DEL VALE -----------$intro$`;
-    this.cargaToPrint += `$small$COD.     DESC.                      CANT.$intro$`;
-
-    this.cargaEnvaseService.observableEnvases().subscribe((envases) => {
-      envases.forEach((envase) => {
-        this.cargaToPrint += `$small$${Math.floor(
-          1000000 + Math.random() * 9000000
-        )}  `;
-
-        let nombreLength: number = 0;
-        if (
-          envase.cardEnvase.nombre &&
-          envase.cardEnvase != envase.cardEnvase.tipo
-        ) {
-          nombreLength = envase.cardEnvase.nombre.concat(
-            envase.cardEnvase.tipo
-          ).length;
-          this.cargaToPrint += envase.cardEnvase.nombre
-            .toUpperCase()
-            .concat(' ', envase.cardEnvase.tipo.toUpperCase());
-        } else {
-          nombreLength = envase.cardEnvase.nombre.length;
-          this.cargaToPrint += envase.cardEnvase.nombre.toUpperCase();
-        }
-
-        for (let i = 0; i < 26 - nombreLength; i++) {
-          this.cargaToPrint += ' ';
-        }
-
-        this.cargaToPrint += `${envase.cardEnvase.cantidad}$intro$`;
-      });
-    });
-  };
-
-  addFooterToprint = async () => {
-    this.cargaToPrint += `$intro$`;
-    this.cargaToPrint += `$small$------------------------------------------$intro$`;
-    this.cargaToPrint += `$small$------- VALIDO POR EL DIA DE EMISION -----$intro$`;
-    this.cargaToPrint += `$small$------------------------------------------$intro$$intro$`;
-
-    this.cargaToPrint += `$big$NRO PV: $intro$`;
-    this.cargaToPrint += `$big$NRO TICKET: $intro$`;
-    this.cargaToPrint += `$intro$$intro$$cutt$`;
-  };
-
-  printCarga = async (): Promise<any> => {
-    await this.addHeaderToPrint();
-    await this.addCargaToPrint();
-    await this.addFooterToprint();
-    this.sendTextData();
-  };
-
-  sendTextData = async () => {
     const printWindow = window.open('', '_blank');
 
     printWindow!.document.write(`<html>
     <head>
       <title>Vale de envases - preview</title>
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&display=swap" rel="stylesheet">
-
       <style type="text/css">
       * {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
           font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
-          font-size: 8px;
-
+          color: #000;
         }
         
         body {
           width: 100%;
           height: auto;
-        }
-        
-        .title, .sub-title {
-          color: #222;
-        }
-        
-        h3, p, span { 
-          color: #222;
         }
         
         .ticket_header {  
@@ -200,7 +88,7 @@ export class MainComponent implements OnInit {
 
         .ticket_header .logo {
           width: 100%;
-          margin-bottom: 16px;
+          margin-bottom: 8px;
           object-fit: container;
         }
 
@@ -209,8 +97,9 @@ export class MainComponent implements OnInit {
           font-size: 14px;
         }
         
-        .ticket_header .title {
+        .ticket_header .sub-title {
           font-size: 10px;
+          font-weight: 500;
         }
         
         .cabecera {
@@ -219,8 +108,11 @@ export class MainComponent implements OnInit {
           display: flex;
           flex-direction: column;
           justify-content: flex-start;
-          align-items: flex-start;
+          align-items: stretch;
           gap: 2px;
+
+          font-size: 8px;
+          font-weight: 500;
         }
         
         .cuerpo {
@@ -230,11 +122,14 @@ export class MainComponent implements OnInit {
           flex-direction: column;
           justify-content: flex-start;
           align-items: stretch;
+
+          font-size: 10px;
+          font-weight: 500;
         }
         
         .cuerpo .separador {
           margin-bottom: 8px;
-          color: #222;
+          font-size: 8px;
         }
         
         .card {        
@@ -263,6 +158,7 @@ export class MainComponent implements OnInit {
         
         .firma-container {
           width: 100%;
+          margin-top: 8px;
 
           display: flex;
           flex-direction: row;
@@ -289,19 +185,20 @@ export class MainComponent implements OnInit {
         
         .footer-firma p {
           margin-top: 4px;
-          color: #222;
           text-align: center;
+          font-size: 8px;
+        }
+
+        main svg {
+          margin: 8px auto 16px;
         }
       </style>
     </head>
     <body>`);
 
-    window.onload = function () {};
-
     printWindow!.document.write(
       document.querySelector('#ticketPrintComponent')?.innerHTML!
     );
-
 
     printWindow!.document.write(`</body></html>`);
 
@@ -309,76 +206,35 @@ export class MainComponent implements OnInit {
     printWindow!.print();
   };
 
-  // sendTextData = async () => {
-  //   // const encoder = new TextEncoder();
-  //   // const cargaToPrint = this.cargaToPrint + '\u000A\u000D';
-  //   // const chunkSize = 512;
-
-  //   // Dividir texto en fragmentos para imprimir buffer de 250b
-  //   // for (let i = 0; i < cargaToPrint.length; i += chunkSize) {
-  //   //   const chunk = cargaToPrint.slice(i, i + chunkSize);
-  //   //   await this.printCharacteristic.writeValue(encoder.encode(chunk));
-  //   // }
-
-  //   const a = document.createElement('a');
-
-  //   a.href = 'com.fidelier.printfromweb://'.concat(this.cargaToPrint);
-  //   a.click();
-  // };
-
-  notificacionPush = (): void => {
+  notificacionPush = (message: string): void => {
     navigator.serviceWorker
       .getRegistration()
-      .then((reg) =>
-        reg?.showNotification(`Se recuperó una carga pendiente de imprimir`)
-      );
+      .then((reg) => reg?.showNotification(message));
   };
 
   newEnvase = (): string => (this.showModal = 'tipoEnvase');
 
-  tipoEnvaseSelected = (envase: string | null): void => {
-    this.tipoEnvase = {};
-    switch (envase) {
-      case 'cerveza':
-        this.tipoEnvase = this.envases.cerveza;
-        this.showModal = 'cantidadEnvase';
-        this.nombreEnvase = envase!;
-        break;
-
-      case 'gaseosa':
-        this.tipoEnvase = this.envases.gaseosa;
-        this.showModal = 'cantidadEnvase';
-        this.nombreEnvase = envase!;
-        break;
-
-      case 'drago':
-        this.tipoEnvase = this.envases.drago;
-        this.showModal = 'cantidadEnvase';
-        this.nombreEnvase = envase!;
-        break;
-
-      case 'cajon':
-        this.tipoEnvase = this.envases.cajones;
-        this.showModal = 'cantidadEnvase';
-        this.nombreEnvase = envase!;
-        break;
-
-      default:
-        this.showModal = 'none';
-        break;
+  tipoEnvaseSelected = (tipoEnvaseId: number): void => {
+    if (tipoEnvaseId !== 0) {
+      this.envaseDTO.tipoEnvaseId = tipoEnvaseId!;
+      this.showModal = 'cantidadEnvase';
+    } else {
+      this.showModal = 'none';
     }
   };
 
   cantidadEnvaseSelected = (
-    obj: { tipo: any; cantidad: string | number } | null
+    obj:
+      | {
+          envaseId: number;
+          cantidad: number;
+        }
+      | 0
   ): void => {
     if (obj) {
-      let envaseDTO: any = {
-        nombre: this.nombreEnvase,
-        tipo: obj?.tipo,
-        cantidad: obj.cantidad,
-      };
-      this.cargaEnvaseService.setEnvase(envaseDTO);
+      this.envaseDTO.envaseId = obj.envaseId!;
+      this.envaseDTO.cantidad = obj.cantidad!;
+      this.envasesDataService.cargarEnvase(this.envaseDTO);
       this.showModal = 'none';
     } else {
       this.showModal = 'tipoEnvase';

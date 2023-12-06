@@ -1,6 +1,6 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, Input, OnInit, inject } from '@angular/core';
 import * as JsBarcode from 'jsbarcode';
-import { CargaEnvaseService } from 'src/app/shared';
+import { EnvasesDataService } from 'src/app/shared';
 
 @Component({
   selector: 'app-ticket-layout',
@@ -8,20 +8,21 @@ import { CargaEnvaseService } from 'src/app/shared';
   styleUrls: ['./ticket-layout.component.sass'],
 })
 export class TicketLayoutComponent implements OnInit {
-  private envaseService = inject(CargaEnvaseService)
+  private envasesDataService = inject(EnvasesDataService);
 
-  private envases: any = undefined;
+  public envases: any = [];
+
+  @Input() cabecera!: {fecha: string, sucursal: string, ticket: string};
 
   ngOnInit(): void {
-    this.envaseService.observableEnvases().subscribe({
-      next: (res) => {
-        this.envases = res
-
-        console.log(this.envases)
-      }, error: (err) => {
-
-      }
-    })
+    this.envasesDataService.getEnvasesObservable().subscribe({
+      next: (envases) => {
+        this.envases = envases;
+      },
+      error: (err) => {
+        this.envases = [];
+      },
+    });
     this.generateEAN13Barcode();
   }
 

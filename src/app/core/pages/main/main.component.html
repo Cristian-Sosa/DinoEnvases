@@ -3,7 +3,6 @@
 
   <section class="content">
     <app-lista-envases></app-lista-envases>
-    <app-ticket-layout class="ticket"></app-ticket-layout>
   </section>
 
   <footer class="actions">
@@ -14,18 +13,8 @@
         isPrimary: true,
         isDisabled: !cargaExist,
       }"
-      (click)="sendTextData()"
+      (click)="printCarga()"
     ></app-button>
-    <!-- <app-button
-      [button]="{
-        type: 'sumbit',
-        text: 'Imprimir carga',
-        isPrimary: true,
-        isDisabled: !cargaExist,
-      }"
-      (click)="getPrinter()"
-    ></app-button> -->
-
     <button (click)="newEnvase()" class="plus">
       <svg
         width="18"
@@ -50,8 +39,8 @@
 
 <app-cantidad-envase-modal
   *ngIf="showModal === 'cantidadEnvase'"
-  [tipoEnvase]="tipoEnvase"
+  [tipoEnvaseId]="envaseDTO.tipoEnvaseId"
   (cantidadEnvase)="cantidadEnvaseSelected($event)"
 ></app-cantidad-envase-modal>
 
-<app-ticket-layout></app-ticket-layout>
+<app-ticket-layout [cabecera]="cabecera"></app-ticket-layout>

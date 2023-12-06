@@ -10,18 +10,17 @@
       <h2 class="sub-title">VÁLIDO POR DÍA DE EMISIÓN</h2>
     </header>
     <section class="cabecera">
-      <h3>N° VALE: {{ "977293-20231127" }}</h3>
-      <p>SUCURSAL: {{ "AV" }}</p>
-      <p>FECHA: {{ "27/11/2023, 15:33" }}</p>
+      <p>N° VALE: {{ cabecera.ticket }}</p>
+      <p>SUCURSAL: {{ cabecera.sucursal }}</p>
+      <p>FECHA: {{ cabecera.fecha }}</p>
     </section>
     <section class="cuerpo">
       <p class="separador">DETALLE DEL VALE</p>
-      <div class="card">
+      <div class="card" *ngFor="let item of envases">
         <header class="card_header">
-          <p class="envase">{{ "Cerveza Marrón" }}</p>
-          <p class="unidades">{{ "8 unidades" }}</p>
+          <p class="envase">{{ item.descripcion }}</p>
+          <p class="unidades">{{ item.cantidades + ' u' }}</p>
         </header>
-        <svg id="barcode"></svg>
       </div>
     </section>
     <footer class="footer">
@@ -37,5 +36,6 @@
         </div>
       </div>
     </footer>
+    <svg id="barcode"></svg>
   </main>
 </div>

@@ -1,5 +1,5 @@
 import { Component, Input, inject } from '@angular/core';
-import { CargaEnvaseService } from '../../services';
+import { EnvasesDataService } from '../../services';
 
 @Component({
   selector: 'app-card',
@@ -7,7 +7,7 @@ import { CargaEnvaseService } from '../../services';
   styleUrls: ['./card.component.sass'],
 })
 export class CardComponent {
-  private cargaEnvaseService = inject(CargaEnvaseService);
+  private envasesDataService = inject(EnvasesDataService);
 
   public remove: boolean = false;
 
@@ -16,7 +16,7 @@ export class CardComponent {
   removeEnvase = (): void => {
     this.remove = true;
     let interval = setInterval(() => {
-      this.cargaEnvaseService.removeEnvase(this.card);
+      this.envasesDataService.removeEnvase(this.card);
       clearInterval(interval);
     }, 250);
   };

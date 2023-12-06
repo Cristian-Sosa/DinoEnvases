@@ -9,7 +9,7 @@ import { ISelect, IUsuario } from 'src/app/shared/models';
   templateUrl: './auth.page.html',
   styleUrls: ['./auth.page.sass'],
 })
-export class AuthPage implements OnInit{
+export class AuthPage implements OnInit {
   private authService = inject(AuthService);
   private toastService = inject(ToastService);
   private router = inject(Router);
@@ -21,15 +21,20 @@ export class AuthPage implements OnInit{
       { value: 'R20', description: 'Ruta 20' },
       { value: 'SV', description: 'San Vicente' },
       { value: 'SAL', description: 'Salsipuedes' },
+      { value: 'CVL', description: 'Circunvalación' },
+      { value: '60C', description: '60 Cuadras' },
+      { value: 'AG', description: 'Alta Gracia' },
+      { value: 'TLH', description: 'Las Heras' },
+      { value: 'TSM', description: 'San Martin' },
     ],
   };
 
   authForm = new FormGroup({
-    userControl: new FormControl(null, [
+    userControl: new FormControl('', [
       Validators.required,
       Validators.nullValidator,
     ]),
-    passControl: new FormControl(null, [
+    passControl: new FormControl('', [
       Validators.required,
       Validators.nullValidator,
     ]),
@@ -40,21 +45,20 @@ export class AuthPage implements OnInit{
   });
 
   ngOnInit(): void {
-    this.authService.clearUser()
+    this.authService.clearUser();
   }
 
   submitForm = () => {
     let usuario: IUsuario = {
-      Usuario: this.authForm.get('userControl')?.value!,
-      Password: this.authForm.get('passControl')?.value!,
-      Sucursal: this.authForm.get('sucursalControl')?.value!,
+      usuario: this.authForm.get('userControl')?.value!,
+      password: this.authForm.get('passControl')?.value!,
+      sucursal: this.authForm.get('sucursalControl')?.value!,
     };
 
-    let isUserRegistered: boolean = this.authService.userValidation(usuario);
+    let isUserRegistered: boolean =
+      this.authService.userValidation(usuario).status === 200 ? true : false;
 
     if (isUserRegistered) {
-      this.toastService.setToastState(false, 'Se está validando al conexión');
-
       this.router.navigate(['carga']);
     } else {
       this.toastService.setToastState(true, 'El usuario no existe');
