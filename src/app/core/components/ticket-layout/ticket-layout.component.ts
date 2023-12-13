@@ -46,12 +46,14 @@ export class TicketLayoutComponent implements OnInit, OnChanges {
 
   generateEAN13Barcode = () => {
     console.log(this.ean);
-    JsBarcode('#barcode', this.ean, {
-      format: 'EAN13',
-      lineColor: '#333',
-      width: 1.5,
-      height: 20,
-      displayValue: true,
-    });
+    if (this.ean) {
+      JsBarcode('#barcode', this.ean, {
+        format: 'EAN13',
+        lineColor: '#333',
+        width: 1.5,
+        height: 20,
+        displayValue: true,
+      });
+    }
   };
 }
