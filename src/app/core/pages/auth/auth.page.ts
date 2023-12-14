@@ -45,7 +45,7 @@ export class AuthPage implements OnInit {
         next: (res) => {
           if (res.status === 200) {
             isUserRegistered = true;
-            console.log(res.data)
+            console.log(res.data);
             this.authService.setUsuario(res.data);
           } else {
             isUserRegistered = false;
@@ -63,8 +63,8 @@ export class AuthPage implements OnInit {
       })
       .add(() => {
         if (isUserRegistered) {
-          this.router.navigate(['carga']);
         } else {
+          this.router.navigate(['carga']);
           this.toastService.setToastState('El usuario no existe');
         }
       });
